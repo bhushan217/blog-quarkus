@@ -1,0 +1,125 @@
+project:
+  name: blog-quarkus
+# postgresql Database settings
+quarkus:
+  # Configures the Artemis properties.
+  artemis:
+    url: tcp://localhost:61616
+    username: artemis
+    password: artemis
+
+  # Configures the PostgreSQL properties.
+  datasource:
+    db-kind: postgresql
+    jdbc:
+      url: jdbc:postgresql://localhost:5432/quarkus_test
+      min-size: 2
+      max-size: 8
+    username: quarkus_test
+    password: quarkus_test
+    #transactions: xa
+
+# drop and create the database at startup (use `update` to only update the schema) drop-and-create
+  hibernate-orm:
+    batch-fetch-size: 50
+    dialect: io.quarkus.hibernate.orm.runtime.dialect.QuarkusPostgreSQL10Dialect
+    database:
+      generation: update
+    log:
+      sql: true
+# For configuration property names that use quotes, do not split the string inside the quotes.
+  log: # ALL > FINEST > FINER > FINE > CONFIG > INFO > WARNING > SEVERE > OFF
+    console:
+      async: true
+      color: true
+      enable: true
+      format: "%d{yyyy-MM-dd HH:mm:ss,SSS} |- %-5p in %c:%L{3.} [%t] - %s%e%n"
+    level: DEBUG
+    category:
+      "in.b2k.blog":
+        level: INFO
+    file:
+      path: "${LOG_DIR}${file.separator}${project.name}${file.separator}${project.name}.log"
+  http:
+    access-log:
+      enabled: true
+      pattern: "%r\n%{ALL_REQUEST_HEADERS}"
+      base-file-name: http-ALL_REQUEST_HEADERS
+      log-directory: ${LOG_DIR:/var/log}/${project.name}
+    cors:
+      ~: true
+      origins: "*"
+      methods: GET,PUT,POST,OPTION
+      headers: "*"
+      access-control-max-age: 24H
+      access-control-allow-credentials: true
+
+# camel look-up beans using BeanManager so we don't want
+# ArC to remove beans without injection points.
+  arc:
+    remove-unused-beans: false
+
+  #
+  # Integration
+  #
+artemis:
+  queue:
+    prices: B2K.BLOG.Q.PRICES
+    greet: B2K.BLOG.Q.GREET
+timer:
+  period: 50000
+temperature:
+  threshold: 30
+msg: its Warm
+#
+# Camel
+#
+camel:
+  context:
+    name: quarkus-camel-example-http-log
+"%dev":
+  quarkus:
+    datasource:
+      db-kind: h2
+      username: sa
+      jdbc:
+        url: jdbc:h2:tcp://localhost:1521/mem:default
+        max-size: 13
+
+      users:
+        db-kind: h2
+        username: sa
+        jdbc:
+          url: jdbc:h2:tcp://localhost:1521/mem:users
+          max-size: 11
+
+      inventory:
+        db-kind: h2
+        username: sa
+        jdbc:
+          url: jdbc:h2:tcp://localhost:1521/mem:inventory
+          max-size: 11
+      #db-kind: postgresql
+      #jdbc:
+      #  url: jdbc:postgresql://localhost:5432/quarkus_test
+      #  min-size: 2
+      #  max-size: 8
+      #username: quarkus_test
+      #password: quarkus_test
+      #transactions: xa #Unrecognized configuration key "quarkus.datasource.transactions" was provided; it will be ignored; verify that the dependency extension for this configuration is set or you did not make a typo
+    hibernate-orm:
+      batch-fetch-size: 50
+      dialect: io.quarkus.hibernate.orm.runtime.dialect.QuarkusH2Dialect
+      database:
+        generation: drop-and-create
+      log:
+        sql: true
+      statistics: true
+    log:
+      category:
+        "io.quarkus.arc.processor":
+          level: WARNING
+        "io.quarkus":
+          level: INFO
+        "org.acme":
+          level: CONFIG
