@@ -3,24 +3,22 @@ package in.b2k.blog.resource;
 import java.util.List;
 import java.util.Optional;
 
-import io.quarkus.narayana.jta.runtime.TransactionConfiguration;
-import lombok.extern.log4j.Log4j2;
-import org.jboss.logging.Logger;
-import org.jboss.resteasy.annotations.jaxrs.PathParam;
-
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.persistence.LockModeType;
 import javax.transaction.Transactional;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.jboss.resteasy.annotations.jaxrs.PathParam;
 
+import in.b2k.blog.model.Comment;
 import in.b2k.blog.model.Post;
 import io.quarkus.panache.common.Sort;
 
@@ -38,11 +36,21 @@ public class PostResource {
     @GET
     @Path("{id}")
     public Post getSingle(@PathParam Long id) {
-        Optional<Post> entity = Post.getWithComment(id);//findById(id);//
-        if (entity.isEmpty()) {
+        Optional<Post> entity = Post.find("id", id).firstResultOptional();
+        if(entity.isEmpty()){
             throw new WebApplicationException(String.format("Post with id of {} does not exist.",id), 404);
         }
         return entity.get();
+    }
+
+    @GET
+    @Path("{id}/comment")
+    public List<Comment> getComment(@PathParam Long id) {
+        List<Comment> entity = Comment.listAll(Sort.by("author"));
+        if(entity.isEmpty()){
+            throw new WebApplicationException(String.format("Post with id of {} does not exist.",id), 404);
+        }
+        return entity;
     }
 
     @POST

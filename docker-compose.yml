@@ -63,6 +63,8 @@ services:
       - ${M2_REPO}:/root/.m2
     ports:
       - 8081:8080
+    mem_limit: 300m
+    mem_reservation: 100m
     depends_on:
       - b2k-mysql-db
       - b2k-postgres-db
