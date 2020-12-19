@@ -4,15 +4,15 @@ project:
 quarkus:
   # Configures the Artemis properties.
   artemis:
-    url: tcp://localhost:61616
+    url: tcp://b2k-activemq-artemis:61616
     username: artemis
-    password: artemis
+    password: secret
 
   # Configures the PostgreSQL properties.
   datasource:
     db-kind: postgresql
     jdbc:
-      url: jdbc:postgresql://localhost:5432/quarkus_test
+      url: jdbc:postgresql://b2k-postgres-db:5432/quarkus_test
       min-size: 2
       max-size: 8
     username: quarkus_test

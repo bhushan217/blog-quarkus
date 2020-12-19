@@ -1,0 +1,86 @@
+version: '3'
+services:
+  b2k-mysql-db:
+    container_name: b2k-mysql-db
+    env_file:
+      - .env
+    image: "mysql/mysql-server:5.7" 
+    ports:
+      - 3306:3306
+    networks:
+      b2k-network:
+    environment:
+      - MYSQL_ONETIME_PASSWORD=true
+    volumes:
+        - ./mysql-data:/var/lib/mysql57:rw
+        - ./mysql-init:/docker-entrypoint-initdb.d/:ro
+
+  b2k-postgres-db:
+    container_name: b2k-postgres-db
+    env_file:
+      - .env
+    image: "postgres:13.1" 
+    ports:
+      - 5432:5432
+    networks:
+      b2k-network:
+    environment:
+      - PGDATA=${BASE_TMP_DIR}/postgres-data
+    volumes:
+        - ${BASE_TMP_DIR}/postgres-data:/var/lib/postgresql/data/pgdata:rw
+        #- ${BASE_TMP_DIR}/postgres-init/initdb.sh:/usr/local/bin/docker-entrypoint.sh:ro
+
+  #activemq-artemis      vromero/activemq-artemis
+  b2k-activemq-artemis:
+    image: "vromero/activemq-artemis"
+    environment:
+      - BASE_IMAGE=vromero/activemq-artemis
+      - ACTIVEMQ_ARTEMIS_VERSION=2.14.0
+      - ARTEMIS_USERNAME=${ARTEMIS_USERNAME}
+      - ARTEMIS_PASSWORD=${ARTEMIS_PASSWORD}
+      - ENABLE_JMX_EXPORTER=true
+      - JMX_EXPORTER_VERSION=0.13.0
+    ports:
+      - 61616:61616
+      - 5672:5672
+      - 9404:9404
+    networks:
+      b2k-network:
+    volumes:
+      - ${BASE_TMP_DIR}/mysql-data:/var/lib/mysql57:rw
+      - ${BASE_TMP_DIR}/mysql-init:/docker-entrypoint-initdb.d/:ro
+
+  b2k-blog-app:
+    container_name: b2k-blog-app
+    image: b2k-blog-app:latest
+    build: 
+      context: ./
+      dockerfile: ./src/main/docker/Dockerfile.jvm
+    working_dir: /
+    restart: on-failure
+    volumes:
+      #- ./:/
+      - ${M2_REPO}:/root/.m2
+    ports:
+      - 8081:8080
+    depends_on:
+      - b2k-mysql-db
+      - b2k-postgres-db
+      - b2k-activemq-artemis
+    networks: 
+      b2k-network: 
+    environment:
+      LOG_DIR: ${LOG_DIR}
+      QUARKUS_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      QUARKUS_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}    
+      QUARKUS_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}/${POSTGRES_DB}?useSSL=false&allowPublicKeyRetrieval=true
+      QUARKUS_ARTEMIS_MODE: native
+      QUARKUS_ARTEMIS_USER: ${ARTEMIS_USERNAME}
+      QUARKUS_ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD}
+      QUARKUS_ARTEMIS_HOST: b2k-activemq-artemis
+      QUARKUS_ARTEMIS_PORT: 61616
+      #SPRING_ARTEMIS_broker-url=tcp://localhost:61616?jms.redeliveryPolicy.maximumRedeliveries=1
+    command: gradle quarkusBuild
+    
+networks:
+    b2k-network:
